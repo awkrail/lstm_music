@@ -1,11 +1,14 @@
 # coding: utf-8
 import binascii
+import sys
+sys.setrecursionlimit(1000000)
 
-with open("practice_midi/UN.mid",'rb') as f:
+with open("practice_midi/UN.mid", 'rb') as f:
     str = f.read()
     hexlify = binascii.hexlify(str)
 
-midi_ary = [hexlify[i:i+2].decode('utf-8') for i in range(0, len(hexlify), 2)]
+midi_ary = [hexlify[i:i+2].decode('utf-8').upper() for i in range(0, len(hexlify), 2)]
+print(midi_ary)
 
 class MidiParser():
     def __init__(self,midi_ary):
@@ -18,7 +21,7 @@ class MidiParser():
         self.result = []
 
     def parse_head(self):
-        if self.midi_ary[0] == "4d" and self.midi_ary[1] == "54" and \
+        if self.midi_ary[0] == "4D" and self.midi_ary[1] == "54" and \
                         self.midi_ary[2] == "68" and self.midi_ary[3] == "64":
             self.header = {
                 'chunk_type': self.midi_ary[0:4],
@@ -32,8 +35,8 @@ class MidiParser():
             print('形式エラーです')
 
     def parse_truck(self):
-        if self.truck_ary[0] == "4d" and self.truck_ary[1] == "54" \
-                and self.truck_ary[2] == "72" and self.truck_ary[3] == "6b":
+        if self.truck_ary[0] == "4D" and self.truck_ary[1] == "54" \
+                and self.truck_ary[2] == "72" and self.truck_ary[3] == "6B":
             self.truck = {
                 'truck_chunk': self.truck_ary[0:4],
                 'data_length': self.truck_ary[4:8],
@@ -43,11 +46,13 @@ class MidiParser():
     def parse_data(self):
         delta_time = self.get_deltatime()
         event_data = self.get_event()
+        print(delta_time)
+        print(event_data)
         self.result.append({
             'delta_time': delta_time,
             'event_data': event_data
         })
-
+        #print(self.result)
         if len(self.data_ary) > 0:
             self.parse_data()
         else:
@@ -62,23 +67,22 @@ class MidiParser():
             tmp_bit = (a << 7)
             i += 1
         delta_bit = tmp_bit | eval('0x' + self.data_ary[i])
+        print(self.data_ary[i])
+        print(delta_bit)
         self.data_ary = self.data_ary[i+1:]
         return delta_bit
 
     def get_event(self):
         data = {}
-        # data["status"] = self.data_ary[0]
         status_byte = self.data_ary[0]
         bin2int = eval('0x' + status_byte)
         if bin2int == 0xFF:
-            #data["type"] = self.data_ary[1]
-            #data["size"] = eval(self.data_ary[2])
-            #data["data"] = self.data_ary[3:3+data["size"]]
-            size = eval(self.data_ary[2])
+            size = eval('0x' + self.data_ary[2])
             self.data_ary = self.data_ary[3+size:]
 
         elif 0x80 <= bin2int <= 0x9F:
             data["bool"] = True
+            data["channel"] = self.data_ary[0]
             data["note"] = self.data_ary[1]
             data["velocity"] = self.data_ary[2]
             self.data_ary = self.data_ary[3:]
@@ -103,7 +107,7 @@ class MidiParser():
                 i = 0
                 while eval(self.data_ary[i]) != 0xF7:
                     i += 1
-                self.data_ary = self.data_ary[i + 2:]
+                self.data_ary = self.data_ary[i+2:]
 
             if bin2int == 0xF1 or bin2int == 0xF3:
                 self.data_ary = self.data_ary[2:]
@@ -128,3 +132,4 @@ print("-------midi---------")
 midi.parse_data()
 print(midi.result)
 print("--------------------")
+print("Done!")
