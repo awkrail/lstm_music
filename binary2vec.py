@@ -1,3 +1,4 @@
+# coding: utf-8
 import binascii
 
 with open("practice_midi/UN.mid",'rb') as f:
@@ -13,6 +14,8 @@ class MidiParser():
         self.data_ary = []
         self.header = {}
         self.truck = {}
+        self.meta = {}
+        self.result = []
 
     def parse_head(self):
         if self.midi_ary[0] == "4d" and self.midi_ary[1] == "54" and \
@@ -26,7 +29,7 @@ class MidiParser():
             }
             self.truck_ary = self.midi_ary[14:]
         else:
-            print('形式エラーです。')
+            print('形式エラーです')
 
     def parse_truck(self):
         if self.truck_ary[0] == "4d" and self.truck_ary[1] == "54" \
@@ -37,10 +40,81 @@ class MidiParser():
             }
             self.data_ary = self.truck_ary[8:]
 
-    def meta_data(self):
-        if self.data_ary[0] == "FF":
-            
+    def parse_data(self):
+        delta_time = self.get_deltatime()
+        event_data = self.get_event()
+        self.result.append({
+            'delta_time': delta_time,
+            'event_data': event_data
+        })
 
+        if len(self.data_ary) > 0:
+            self.parse_data()
+        else:
+            print("Done!")
+
+
+    def get_deltatime(self):
+        i = 0
+        tmp_bit = 0
+        while eval('0x' + self.data_ary[i]) >= 0x80:
+            a = eval('0x' + self.data_ary[i]) ^ (1 << 7)
+            tmp_bit = (a << 7)
+            i += 1
+        delta_bit = tmp_bit | eval('0x' + self.data_ary[i])
+        self.data_ary = self.data_ary[i+1:]
+        return delta_bit
+
+    def get_event(self):
+        data = {}
+        # data["status"] = self.data_ary[0]
+        status_byte = self.data_ary[0]
+        bin2int = eval('0x' + status_byte)
+        if bin2int == 0xFF:
+            #data["type"] = self.data_ary[1]
+            #data["size"] = eval(self.data_ary[2])
+            #data["data"] = self.data_ary[3:3+data["size"]]
+            size = eval(self.data_ary[2])
+            self.data_ary = self.data_ary[3+size:]
+
+        elif 0x80 <= bin2int <= 0x9F:
+            data["bool"] = True
+            data["note"] = self.data_ary[1]
+            data["velocity"] = self.data_ary[2]
+            self.data_ary = self.data_ary[3:]
+
+        elif 0x9F < bin2int:
+            if 0xA0 <= bin2int <= 0xAF:
+                self.data_ary = self.data_ary[3:]
+
+            if 0xB0 <= bin2int <= 0xBF:
+                if self.data_ary[1] == 0x00 and self.data_ary[4] == 0x20:
+                    self.data_ary = self.data_ary[6:]
+                else:
+                    self.data_ary = self.data_ary[3:]
+
+            if 0xC0 <= bin2int <= 0xDF:
+                self.data_ary = self.data_ary[2:]
+
+            if 0xE0 <= bin2int <= 0xEF:
+                self.data_ary = self.data_ary[3:]
+
+            if bin2int == 0xF0:
+                i = 0
+                while eval(self.data_ary[i]) != 0xF7:
+                    i += 1
+                self.data_ary = self.data_ary[i + 2:]
+
+            if bin2int == 0xF1 or bin2int == 0xF3:
+                self.data_ary = self.data_ary[2:]
+
+            if bin2int == 0xF2:
+                self.data_ary = self.data_ary[3:]
+
+        if len(data) == 0:
+            data["bool"] = False
+
+        return data
 
 midi = MidiParser(midi_ary)
 midi.parse_head()
@@ -49,4 +123,8 @@ print("-------header-------")
 print(midi.header)
 print("-------chunk--------")
 print(midi.truck)
+print("--------------------")
+print("-------midi---------")
+midi.parse_data()
+print(midi.result)
 print("--------------------")
