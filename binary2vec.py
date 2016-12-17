@@ -1,6 +1,7 @@
 # coding: utf-8
 import binascii
 import sys
+import numpy as np
 sys.setrecursionlimit(1000000)
 
 with open("practice_midi/UN.mid", 'rb') as f:
@@ -11,6 +12,14 @@ midi_ary = [hexlify[i:i+2].decode('utf-8').upper() for i in range(0, len(hexlify
 print(midi_ary)
 
 class MidiParser():
+    """
+    バイナリデータのmidiファイルを
+    header部分,チャンク部分に切り分け,
+    note-on,note-offのデータのみを取り出すクラス。
+
+    TODO:エクスクルーシブメッセージ(F0~F7)のものがあるmidiデータへの対応,複数トラックへの対応は未処理。
+    """
+
     def __init__(self,midi_ary):
         self.midi_ary = midi_ary
         self.truck_ary = []
@@ -55,8 +64,28 @@ class MidiParser():
         #print(self.result)
         if len(self.data_ary) > 0:
             self.parse_data()
-        else:
-            print("Done!")
+
+    def take_true_data(self):
+        track = []
+        for rlt in self.result:
+            if rlt["event_data"]["bool"] == True:
+                track.append(rlt)
+        print("Done!")
+        self.result = track
+
+    def delta_to_time_order(self):
+        t_n = 0
+        result_ary = []
+        for rlt in self.result:
+            delta = rlt["delta_time"]
+            t_n = t_n + delta
+            result_ary.append({
+                'order_time' : t_n,
+                'event_data' : rlt['event_data']
+            })
+
+        return result_ary
+
 
 
     def get_deltatime(self):
@@ -120,6 +149,56 @@ class MidiParser():
 
         return data
 
+class midi2vec():
+    """
+    分解能/4ずつ(16分音符ずつ),音がなっているかどうかをチェックし,
+    鳴っている音を特定,1/96分で1要素となる配列を生成し,それを24ずつ区切りでスライスしベクトル化するクラス。
+    """
+
+    def __init__(self, track_ary,time_unit):
+        self.track = track_ary
+        self.time_unit = eval('0x' + time_unit)
+        self.T = track_ary[-1]["order_time"]
+        self.midiAry = []
+
+    def roop_del(self):
+        status = 0
+        cdary_num = 0
+        for i in range(self.T):
+            if i in self.track["order_time"]:
+                command_ary = [command for command in self.track if command["order_time"] == i]
+                for command in command_ary:
+                    if eval('0x' + command['velocity']) > 0:
+                        status = 1
+                        self.midi2ary(status, command)
+                        cdary_num += 1
+                        if cdary_num == len(command_ary) - 1:
+                            self.join_ary(cdary_num)
+                    else:
+                        status = 0
+            else:
+                if status == 1:
+                    self.recursive_midi2ary(status)
+                else:
+                    self.recursive_midi2ary(status)
+
+    def midi2ary(self, status, command):
+        piano_vec = [0] * 128
+        sound = eval(command["note"])
+        piano_vec[sound] = 1
+        self.midiAry.append(piano_vec)
+
+    def join_ary(self,ary_length):
+        lists = [self.midiAry[-i] for i in range(1, ary_length+1)]
+
+
+    def recursive_midi2ary(self,status):
+        pass
+
+
+    def midi2numpy(self):
+        pass
+
 midi = MidiParser(midi_ary)
 midi.parse_head()
 midi.parse_truck()
@@ -130,6 +209,8 @@ print(midi.truck)
 print("--------------------")
 print("-------midi---------")
 midi.parse_data()
-print(midi.result)
+#print(midi.result)
 print("--------------------")
-print("Done!")
+midi.take_true_data()
+track = midi.delta_to_time_order()
+print(track)
