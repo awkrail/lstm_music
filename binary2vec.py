@@ -2,6 +2,7 @@
 import binascii
 import sys
 import numpy as np
+
 sys.setrecursionlimit(1000000)
 
 
@@ -14,7 +15,7 @@ class MidiParser():
     TODO:エクスクルーシブメッセージ(F0~F7)のものがあるmidiデータへの対応,複数トラックへの対応は未処理。
     """
 
-    def __init__(self,midi_ary):
+    def __init__(self, midi_ary):
         self.midi_ary = midi_ary
         self.truck_ary = []
         self.data_ary = []
@@ -49,13 +50,13 @@ class MidiParser():
     def parse_data(self):
         delta_time = self.get_deltatime()
         event_data = self.get_event()
-        #print(delta_time)
-        #print(event_data)
+        # print(delta_time)
+        # print(event_data)
         self.result.append({
             'delta_time': delta_time,
             'event_data': event_data
         })
-        #print(self.result)
+        # print(self.result)
         if len(self.data_ary) > 0:
             self.parse_data()
 
@@ -74,8 +75,8 @@ class MidiParser():
             delta = rlt["delta_time"]
             t_n = t_n + delta
             result_ary.append({
-                'order_time' : t_n + 1,
-                'event_data' : rlt['event_data']
+                'order_time': t_n,
+                'event_data': rlt['event_data']
             })
 
         fixed_order_ary = []
@@ -89,7 +90,6 @@ class MidiParser():
 
         return fixed_order_ary
 
-
     def get_deltatime(self):
         i = 0
         tmp_bit = 0
@@ -98,9 +98,9 @@ class MidiParser():
             tmp_bit = (a << 7)
             i += 1
         delta_bit = tmp_bit | eval('0x' + self.data_ary[i])
-        #print(self.data_ary[i])
-        #print(delta_bit)
-        self.data_ary = self.data_ary[i+1:]
+        # print(self.data_ary[i])
+        # print(delta_bit)
+        self.data_ary = self.data_ary[i + 1:]
         return delta_bit
 
     def get_event(self):
@@ -109,7 +109,7 @@ class MidiParser():
         bin2int = eval('0x' + status_byte)
         if bin2int == 0xFF:
             size = eval('0x' + self.data_ary[2])
-            self.data_ary = self.data_ary[3+size:]
+            self.data_ary = self.data_ary[3 + size:]
 
         elif 0x80 <= bin2int <= 0x9F:
             data["bool"] = True
@@ -138,7 +138,7 @@ class MidiParser():
                 i = 0
                 while eval(self.data_ary[i]) != 0xF7:
                     i += 1
-                self.data_ary = self.data_ary[i+2:]
+                self.data_ary = self.data_ary[i + 2:]
 
             if bin2int == 0xF1 or bin2int == 0xF3:
                 self.data_ary = self.data_ary[2:]
@@ -151,7 +151,8 @@ class MidiParser():
 
         return data
 
-class midi2vec():
+
+class Mid2vec():
     """
     分解能/4ずつ(16分音符ずつ),音がなっているかどうかをチェックし,
     鳴っている音を特定,1/96分で1要素となる配列を生成し,それを24ずつ区切りでスライスしベクトル化するクラス。
@@ -159,80 +160,39 @@ class midi2vec():
     def __init__(self, track_ary, time_unit):
         self.track = track_ary
         self.time_unit = eval('0x' + time_unit[0] + time_unit[1])
-        self.T = track_ary[-1]["order_time"]
-        self.midiAry = []
-        self.result = []
+        self.T = track_ary[-1]['order_time']
+        self.midi_ary = [[0 for _ in range(128)] for _ in range(self.T)]
 
-    def roop_del(self):
-        status = 0
-        cdary_num = 0
-        order_time_ary = [dit['order_time'] for dit in self.track]
+    def midi2vec(self):
+        for on_command in self.track:
+            if eval('0x' + on_command['event_data']['velocity']) > 0:
+                for off_command in self.track:
+                    if on_command['event_data']['note'] == off_command['event_data']['note'] and \
+                            eval('0x' + off_command['event_data']['velocity']) == 0 and \
+                            off_command['order_time'] > on_command['order_time']:
 
-        for i in range(self.T):
-            # こちらは連続的な時間としてとる。
-            if i in order_time_ary:
-                # ここのif文は,track_aryの全配列の要素のorder_timeの中にあるかどうか。離散値なので連続的にチェックする。
-                command_ary = [command for command in self.track if command["order_time"] == i]
-                print(command_ary)
-                # ここまではうまくとれているようである。
-                for command in command_ary:
-                    if eval('0x' + command['event_data']['velocity']) > 0:
-                        status = 1
-                        self.midi2ary(command)
-                        # print(self.midiAry)
-                        cdary_num += 1
-                        if cdary_num == len(command_ary) - 1:
-                            # TODO:ここの分岐が怪しい気がする。水曜日にがっつりデバッグする。
-                            self.join_ary(cdary_num)
+                        start_time = on_command['order_time']
+                        end_time = off_command['order_time']
+                        note = eval('0x' + on_command['event_data']['note'])
+                        self.draw1ary(start_time, end_time, note)
+                        break
                     else:
-                        status = 0
+                        continue
+
+    def draw1ary(self, start_time, end_time, note):
+        for i in range(start_time, end_time + 1):
+            if i < self.T:
+                self.midi_ary[i][note] = 1
             else:
-                if status == 1:
-                    self.recursive_midi2ary(status)
-                else:
-                    self.recursive_midi2ary(status)
+                break
 
-    def midi2ary(self, command):
-        piano_vec = [0 for _ in range(128)]
-        sound = eval('0x' + command['event_data']["note"])
-        piano_vec[sound] = 1
-        self.midiAry.append(piano_vec)
-
-    def join_ary(self, ary_length):
-        lists = [self.midiAry[-i] for i in range(1, ary_length+1)]
-        others = 10 - ary_length
-        # 配列の数が可変であり,そのままだと計算ができないので10個に合わせる。
-        other_lists = [[0 for _ in range(128)] for _ in range(others)]
-        lists.extend(other_lists)
-        l1, l2, l3, l4, l5, l6, l7, l8, l9, l10 = lists[0], lists[1], lists[2], lists[3], lists[4], \
-                                         lists[5], lists[6], lists[7], lists[8], lists[9]
-
-        combined_list = [a + b + c + d + e + f + g + h + i + j for a, b, c, d, e, f, g, h, i, j in zip(l1, l2, l3,
-                                                                                                       l4, l5, l6, l7,
-                                                                                                       l8, l9, l10)]
-        self.result.append(combined_list)
-        # TODO:listsの値から,要素ごとに足し算した値を作成し,self.midiAryから結合した部分を取り出して作った方を追加する。
-        # TODO:もしくは,新しく配列オブジェクトを作るかをする。
-
-
-    def recursive_midi2ary(self,status):
-        if status == 1:
-            same_list = self.result[-1].copy()
-            self.result.append(same_list)
-        else:
-            zero_list = [0 for _ in range(128)]
-            self.result.append(zero_list)
-
-
-    def midi2numpy(self):
-        pass
 
 with open("practice_midi/UN.mid", 'rb') as f:
     str = f.read()
     hexlify = binascii.hexlify(str)
 
-midi_ary = [hexlify[i:i+2].decode('utf-8').upper() for i in range(0, len(hexlify), 2)]
-#print(midi_ary)
+midi_ary = [hexlify[i:i + 2].decode('utf-8').upper() for i in range(0, len(hexlify), 2)]
+# print(midi_ary)
 
 midi = MidiParser(midi_ary)
 midi.parse_head()
@@ -244,12 +204,17 @@ print(midi.truck)
 print("--------------------")
 print("-------midi---------")
 midi.parse_data()
-#print(midi.result)
+# print(midi.result)
 print("--------------------")
 midi.take_true_data()
 track = midi.delta_to_time_order()
+#print(track)
 
-to_vec_obj = midi2vec(track,midi.header["time_unit"])
-to_vec_obj.roop_del()
+m_obj = Mid2vec(track, midi.header["time_unit"])
+m_obj.midi2vec()
+print(m_obj.midi_ary)
 
-#print(to_vec_obj.result)
+# to_vec_obj = midi2vec(track,midi.header["time_unit"])
+# to_vec_obj.roop_del()
+
+# print(to_vec_obj.result)
