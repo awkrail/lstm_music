@@ -65,7 +65,6 @@ class MidiParser():
         for rlt in self.result:
             if rlt["event_data"]["bool"] == True:
                 track.append(rlt)
-        print("Done!")
         self.result = track
 
     def delta_to_time_order(self):
@@ -81,13 +80,15 @@ class MidiParser():
 
         fixed_order_ary = []
 
+
         for rlt in result_ary:
-            if eval(rlt['event_data']['velocity']) == 0:
+            if eval('0x' + rlt['event_data']['velocity']) == 0:
                 rlt['order_time'] -= 1
                 fixed_order_ary.append(rlt)
             else:
                 fixed_order_ary.append(rlt)
 
+        print("Done!")
         return fixed_order_ary
 
     def get_deltatime(self):
@@ -187,7 +188,7 @@ class Mid2vec():
                 break
 
 
-with open("practice_midi/UN.mid", 'rb') as f:
+with open("practice_midi/Native_Faith.mid", 'rb') as f:
     str = f.read()
     hexlify = binascii.hexlify(str)
 
@@ -214,7 +215,3 @@ m_obj = Mid2vec(track, midi.header["time_unit"])
 m_obj.midi2vec()
 print(m_obj.midi_ary)
 
-# to_vec_obj = midi2vec(track,midi.header["time_unit"])
-# to_vec_obj.roop_del()
-
-# print(to_vec_obj.result)
