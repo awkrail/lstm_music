@@ -172,39 +172,40 @@ class Mid2vec():
                             eval('0x' + off_command['event_data']['velocity']) == 0 and \
                             off_command['order_time'] > on_command['order_time']:
 
+                        #print(on_command)
                         start_time = on_command['order_time']
                         end_time = off_command['order_time']
                         note = eval('0x' + on_command['event_data']['note'])
-                        self.draw1ary(start_time, end_time, note)
+                        velocity = eval('0x' + on_command['event_data']['velocity'])
+                        self.draw1ary(start_time, end_time, note, velocity)
                         break
                     else:
                         continue
 
-    def draw1ary(self, start_time, end_time, note):
+    def draw1ary(self, start_time, end_time, note, velocity):
         for i in range(start_time, end_time + 1):
             if i < self.T:
-                self.midi_ary[i][note] = 1
+                self.midi_ary[i][note] = velocity
             else:
                 break
 
     def vec2numpy(self):
         sixteenth_note = int(self.time_unit / 4)
         tmp_ary = [self.midi_ary[i:i + sixteenth_note] for i in range(0, self.T, sixteenth_note)]
-        #print(tmp_ary[1])
         for ary_per_sixteenth in tmp_ary:
-            #print(ary_per_sixteenth)
             note_ary = []
             for vector in ary_per_sixteenth:
-                for index, elm in enumerate(vector):
-                    if elm > 0:
-                        note_ary.append(index)
+                for index, velocity in enumerate(vector):
+                    if velocity > 0:
+                        note_ary.append((index, velocity))
                     else:
                         continue
 
-            set_ary = set(note_ary)
+            set_ary = sorted(set(note_ary), key=note_ary.index)
+            #print(set_ary)
             vec_nt = [0 for _ in range(128)]
-            for index in set_ary:
-                vec_nt[index] = 1
+            for index, velocity in set_ary:
+                vec_nt[index] = velocity
             self.midi_numpy.append(vec_nt)
 
-        self.midi_numpy = np.array(self.midi_numpy,dtype=np.float32)
+        self.midi_numpy = np.array(self.midi_numpy, dtype=np.float32)
