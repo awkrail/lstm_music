@@ -82,7 +82,7 @@ class MidiParser():
         fixed_order_ary = []
 
         for rlt in result_ary:
-            if eval(rlt['event_data']['velocity']) == 0:
+            if eval('0x' + rlt['event_data']['velocity']) == 0:
                 rlt['order_time'] -= 1
                 fixed_order_ary.append(rlt)
             else:
@@ -162,6 +162,7 @@ class Mid2vec():
         self.time_unit = eval('0x' + time_unit[0] + time_unit[1])
         self.T = track_ary[-1]['order_time']
         self.midi_ary = [[0 for _ in range(128)] for _ in range(self.T)]
+        self.midi_numpy = []
 
     def midi2vec(self):
         for on_command in self.track:
@@ -185,6 +186,28 @@ class Mid2vec():
                 self.midi_ary[i][note] = 1
             else:
                 break
+
+    def vec2numpy(self):
+        sixteenth_note = int(self.time_unit / 4)
+        tmp_ary = [self.midi_ary[i:i + sixteenth_note] for i in range(0, self.T, sixteenth_note)]
+        #print(tmp_ary[1])
+        for ary_per_sixteenth in tmp_ary:
+            #print(ary_per_sixteenth)
+            note_ary = []
+            for vector in ary_per_sixteenth:
+                for index, elm in enumerate(vector):
+                    if elm > 0:
+                        note_ary.append(index)
+                    else:
+                        continue
+
+            set_ary = set(note_ary)
+            vec_nt = [0 for _ in range(128)]
+            for index in set_ary:
+                vec_nt[index] = 1
+            self.midi_numpy.append(vec_nt)
+
+        self.midi_numpy = np.array(self.midi_numpy,dtype=np.float32)
 
 
 with open("practice_midi/UN.mid", 'rb') as f:
@@ -212,7 +235,8 @@ track = midi.delta_to_time_order()
 
 m_obj = Mid2vec(track, midi.header["time_unit"])
 m_obj.midi2vec()
-print(m_obj.midi_ary)
+m_obj.vec2numpy()
+print(m_obj.midi_numpy)
 
 # to_vec_obj = midi2vec(track,midi.header["time_unit"])
 # to_vec_obj.roop_del()
