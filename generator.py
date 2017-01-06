@@ -1,4 +1,5 @@
 from binary2vec import *
+from vec2binary import *
 import numpy as np
 import binascii
 
@@ -8,6 +9,8 @@ if __name__ == '__main__':
         hexlify = binascii.hexlify(str)
 
     midi_ary = [hexlify[i:i + 2].decode('utf-8').upper() for i in range(0, len(hexlify), 2)]
+
+    # ---- parse_midi -----
 
     midi = MidiParser(midi_ary)
     midi.parse_head()
@@ -26,8 +29,16 @@ if __name__ == '__main__':
     m_obj.midi2vec()
     m_obj.vec2numpy()
     midi_numpy = m_obj.midi_numpy
+    midi_T = m_obj.T
     print(midi_numpy)
 
+    # ---- decoding_midi -----
+
+    vec2midi = vec2binary(midi.header, midi.truck, midi_numpy, midi_T)
+    vec2midi.set_header()
+    vec2midi.set_truck()
+    vec2midi.numpy2ary()
+    print(len(vec2midi.detailed_ary))
 
 
 

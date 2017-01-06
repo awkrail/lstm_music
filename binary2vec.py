@@ -87,7 +87,7 @@ class MidiParser():
             else:
                 fixed_order_ary.append(rlt)
 
-        print("Done!")
+        #print("Done!")
         return fixed_order_ary
 
     def get_deltatime(self):
@@ -172,7 +172,6 @@ class Mid2vec():
                             eval('0x' + off_command['event_data']['velocity']) == 0 and \
                             off_command['order_time'] > on_command['order_time']:
 
-                        #print(on_command)
                         start_time = on_command['order_time']
                         end_time = off_command['order_time']
                         note = eval('0x' + on_command['event_data']['note'])
