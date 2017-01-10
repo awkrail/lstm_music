@@ -38,7 +38,10 @@ if __name__ == '__main__':
     vec2midi.set_header()
     vec2midi.set_truck()
     vec2midi.numpy2ary()
-    print(len(vec2midi.detailed_ary))
+    vec2midi.ary2dict()
+    vec2midi.sort_dicts2delta_time()
+    print(vec2midi.dict_ary)
+    #print(len(vec2midi.detailed_ary))
 
 
 
