@@ -15,6 +15,7 @@ class vec2binary():
         self.detailed_ary = [[0 for _ in range(128)] for _ in range(self.T)]
         self.boolean = [[False for _ in range(128)] for _ in range(self.T)]
         self.dict_ary = []
+        self.tmp_ary = []
 
     def set_header(self):
         chunck_type = [byt for byt in self.header['chunk_type']]
@@ -76,20 +77,20 @@ class vec2binary():
     def dict_ary2midi(self):
         tmp_ary = []
         time_unit = eval('0x' + self.header['time_unit'][0] + self.header['time_unit'][1])
-        sixteenth = int(time_unit / 4)
+        sixteenth = hex(int(time_unit / 4))
         for dict in self.dict_ary:
-            if dict['velocity'] > 0:
+            if eval('0x' + dict['velocity']) > 0:
                 tmp_ary.append('00')
                 tmp_ary.append(dict['channel'])
                 tmp_ary.append(dict['note'])
                 tmp_ary.append(dict['velocity'])
             else:
-                tmp_ary.append(sixteenth)
+                tmp_ary.append(sixteenth[2:])
                 tmp_ary.append(dict['channel'])
                 tmp_ary.append(dict['note'])
                 tmp_ary.append(dict['velocity'])
 
-        print(tmp_ary)
+        self.tmp_ary = tmp_ary
 
 
 
