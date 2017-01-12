@@ -24,6 +24,7 @@ if __name__ == '__main__':
     midi.parse_data()
     print("--------------------")
     midi.take_true_data()
+
     track = midi.delta_to_time_order()
     m_obj = Mid2vec(track, midi.header["time_unit"])
     m_obj.midi2vec()

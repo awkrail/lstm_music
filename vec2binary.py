@@ -67,7 +67,7 @@ class vec2binary():
                     note = hex(index)
                     tmp_dict_start = {'order_time': start, 'channel': '90', 'velocity': velocity[2:],
                                       'note': note[2:]}
-                    tmp_dict_end = {'order_time': end - 1, 'channel': '90', 'velocity': '00', 'note': note[2:]}
+                    tmp_dict_end = {'order_time': end, 'channel': '90', 'velocity': '00', 'note': note[2:]}
                     self.dict_ary.append(tmp_dict_start)
                     self.dict_ary.append(tmp_dict_end)
 
@@ -78,21 +78,76 @@ class vec2binary():
         tmp_ary = []
         time_unit = eval('0x' + self.header['time_unit'][0] + self.header['time_unit'][1])
         sixteenth = hex(int(time_unit / 4))
-        for dict in self.dict_ary:
-            if eval('0x' + dict['velocity']) > 0:
+
+        # 最初の要素だけは別で入れておく。
+        tmp_ary.append(self.dict_ary[0]['channel'])
+        tmp_ary.append(self.dict_ary[0]['note'])
+        tmp_ary.append(self.dict_ary[0]['velocity'])
+        del self.dict_ary[0]
+
+        for i, dict in enumerate(self.dict_ary):
+            # print(i)
+            delta_time = dict['order_time'] - self.dict_ary[i-1]['order_time']
+            print(delta_time)
+
+            # 一回目だけの処理
+            if i == 0:
                 tmp_ary.append('00')
-                tmp_ary.append(dict['channel'])
-                tmp_ary.append(dict['note'])
-                tmp_ary.append(dict['velocity'])
+                self.append2ary(tmp_ary, dict)
+                continue
+            # delta_timeがないとき
+            if delta_time == 0:
+                tmp_ary.append('00')
+                self.append2ary(tmp_ary, dict)
             else:
-                tmp_ary.append(sixteenth[2:])
-                tmp_ary.append(dict['channel'])
-                tmp_ary.append(dict['note'])
-                tmp_ary.append(dict['velocity'])
+                # delta_timeがあるとき。
+                # delta_timeが0x80(128)を超える長さの時,可変長数値表現にする処理が必要
+                if delta_time >= eval('0x80'):
+                    delta_times = convert(delta_time)
+                    print(delta_times)
+                    # TODO:ここではさらに,delta_timeが可変長数値表現以上の時を考える必要あり。
+                    for delta_time in delta_times:
+                        tmp_ary.append(delta_time[2:])
+                    self.append2ary(tmp_ary, dict)
+                else:
+                    tmp = hex(delta_time)
+                    tmp_ary.append(tmp[2:])
+                    self.append2ary(tmp_ary, dict)
 
         self.tmp_ary = tmp_ary
 
+    def append2ary(self,ary,dict):
+        ary.append(dict['channel'])
+        ary.append(dict['note'])
+        ary.append(dict['velocity'])
 
+
+def convert(val):
+    buffer = []
+    buffer.append((0x7f & val))
+    val = (val >> 7)
+    while val > 0:
+        buffer.append(0x80 + (val & 0x7f))
+        val = (val >> 7)
+    buffer.sort(reverse=True)
+    print(buffer)
+    buffer = ary2hex(buffer)
+
+    return buffer
+
+
+def ary2hex(ary):
+    return_ary = []
+    for elm in ary:
+        if elm == 0:
+            dt = '0x00'
+            return_ary.append(dt)
+        else:
+            dt = hex(elm)
+            return_ary.append(dt)
+
+            # TODO:三項演算子でそれぞれを16進数にしていく
+    return return_ary
 
 
 
