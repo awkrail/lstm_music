@@ -14,6 +14,7 @@ if __name__ == '__main__':
 
     midi = MidiParser(midi_ary)
     midi.parse_head()
+
     midi.parse_truck()
     print("-------header-------")
     print(midi.header)
@@ -33,15 +34,21 @@ if __name__ == '__main__':
     midi_T = m_obj.T
     print(midi_numpy)
 
+    #　TODO: tempo,rythm,keyは自動的に抽出できるようにする。
+
+    tempo = ['00', 'FF', '51', '03', '05', 'E8', '18']
+    rythm = ['00', 'FF', '58', '04', '05', '02', '18', '08']
+    key = ['00', 'FF', '59', '02', 'FB']
+
     # ---- decoding_midi -----
 
-    vec2midi = vec2binary(midi.header, midi.truck, midi_numpy, midi_T)
+    vec2midi = vec2binary(midi.header, midi.truck, midi_numpy, midi_T,tempo, rythm, key)
     vec2midi.set_header()
     vec2midi.set_truck()
     vec2midi.numpy2ary()
     vec2midi.ary2dict()
     vec2midi.dict_ary2midi()
-    print(vec2midi.tmp_ary)
+    vec2midi.ary2midi_data()
     #print(len(vec2midi.detailed_ary))
 
 

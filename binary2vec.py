@@ -98,8 +98,6 @@ class MidiParser():
             tmp_bit = (a << 7)
             i += 1
         delta_bit = tmp_bit | eval('0x' + self.data_ary[i])
-        # print(self.data_ary[i])
-        # print(delta_bit)
         self.data_ary = self.data_ary[i + 1:]
         return delta_bit
 
@@ -108,6 +106,7 @@ class MidiParser():
         status_byte = self.data_ary[0]
         bin2int = eval('0x' + status_byte)
         if bin2int == 0xFF:
+            dt_type = eval('0x' + self.data_ary[1])
             size = eval('0x' + self.data_ary[2])
             self.data_ary = self.data_ary[3 + size:]
 
