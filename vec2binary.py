@@ -5,12 +5,9 @@ import numpy as np
 sys.setrecursionlimit(1000000)
 
 class vec2binary():
-    def __init__(self, header, truck, midi_numpy, time, tempo, rythm, key):
+    def __init__(self, header, truck, midi_numpy, time):
         self.header = header
         self.truck = truck
-        self.tempo = tempo
-        self.rythm = rythm
-        self.key = key
         # TODO: トラックチャネルのデータ部分のデータ長は後々midiを作成してから変更可能にする。
         self.midi_numpy = midi_numpy
         self.midi_ary = []
@@ -32,8 +29,8 @@ class vec2binary():
 
     def set_truck(self):
         truck_type = [byt for byt in self.truck['truck_chunk']]
-        data_length = ['00', '00', '00', '00']
-        truck_data = [truck_type, data_length, self.tempo, self.rythm, self.key]
+        data_length = [byt for byt in self.truck['data_length']]
+        truck_data = [truck_type, data_length]
         for truck_ary in truck_data:
             for byt in truck_ary:
                 self.midi_ary.append(byt.lower())
@@ -91,7 +88,6 @@ class vec2binary():
         del self.dict_ary[0]
 
         for i, dict in enumerate(self.dict_ary):
-            # print(i)
             delta_time = dict['order_time'] - self.dict_ary[i-1]['order_time']
 
             # 一回目だけの処理
@@ -108,7 +104,6 @@ class vec2binary():
                 # delta_timeが0x80(128)を超える長さの時,可変長数値表現にする処理が必要
                 if delta_time >= eval('0x80'):
                     delta_times = convert(delta_time)
-                    print(delta_times)
                     for delta_time in delta_times:
                         self.midi_ary.append(delta_time[2:])
                     self.append2ary(self.midi_ary, dict)
@@ -123,21 +118,13 @@ class vec2binary():
         self.midi_ary.append('2f')
         self.midi_ary.append('00')
 
-        # data_lengthを変更する。
-        update_length = len(self.midi_ary) - 22
-        hex_length = hex(update_length)
-        len_ary = ['00', '00', hex_length[2:4], hex_length[4:]]
-        for i, dt in enumerate(len_ary):
-            self.midi_ary[i+18] = dt
-
 
     def ary2midi_data(self):
+        print(len(self.midi_ary))
         int_ary = [eval('0x' + byt) for byt in self.midi_ary]
-        with open('practice_midi/learned_UN.mid', 'wb') as f:
+        with open('practice_midi/studied_UN.mid', 'wb') as f:
             bary = bytearray(int_ary)
             f.write(bary)
-
-
 
     def append2ary(self, ary, dict):
         ary.append(dict['channel'])
