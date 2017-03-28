@@ -4,7 +4,7 @@ import numpy as np
 import binascii
 
 if __name__ == '__main__':
-    with open("practice_midi/UN.mid", 'rb') as f:
+    with open("practice_midi/Native_Faith.mid", 'rb') as f:
         str = f.read()
         hexlify = binascii.hexlify(str)
 

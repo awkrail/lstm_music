@@ -122,7 +122,7 @@ class vec2binary():
     def ary2midi_data(self):
         print(len(self.midi_ary))
         int_ary = [eval('0x' + byt) for byt in self.midi_ary]
-        with open('practice_midi/studied_UN.mid', 'wb') as f:
+        with open('practice_midi/studied_Native.mid', 'wb') as f:
             bary = bytearray(int_ary)
             f.write(bary)
 

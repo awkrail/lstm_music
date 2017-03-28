@@ -174,7 +174,7 @@ class Mid2vec():
                         start_time = on_command['order_time']
                         end_time = off_command['order_time']
                         note = eval('0x' + on_command['event_data']['note'])
-                        velocity = eval('0x' + on_command['event_data']['velocity'])
+                        velocity = int(eval('0x' + on_command['event_data']['velocity']) * 127)
                         self.draw1ary(start_time, end_time, note, velocity)
                         break
                     else:
@@ -203,7 +203,7 @@ class Mid2vec():
             #print(set_ary)
             vec_nt = [0 for _ in range(128)]
             for index, velocity in set_ary:
-                vec_nt[index] = velocity
+                vec_nt[index] = velocity / 127.0
             self.midi_numpy.append(vec_nt)
 
         self.midi_numpy = np.array(self.midi_numpy, dtype=np.float32)
